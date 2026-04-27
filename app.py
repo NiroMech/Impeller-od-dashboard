@@ -41,7 +41,7 @@ TABLE_NAME     = "Impeller Database"
 ID_COLS = {
     "unique ID #"       : "Unique ID",
     "TPU WO name"       : "TPU WO",        # formula field → plain string
-    "Impeller Lot name" : "Assembly WO",   # formula field → plain string
+    "Assembly WO name"  : "Assembly WO",   # formula field → plain string
 }
 
 # Ordered stage tuples: (stage_label, eff_col, hyd_col)
