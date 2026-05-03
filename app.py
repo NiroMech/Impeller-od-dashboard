@@ -454,6 +454,7 @@ if show_lines:
             name         = leg_name,
             legendgroup  = legend_group,
             showlegend   = show_leg,
+            offsetgroup  = str(grp_label) if group_col else None,
             hovertemplate= "%{text}<extra></extra>",
             text         = hover_text,
             connectgaps  = False,
@@ -461,30 +462,61 @@ if show_lines:
 
 # ── 2.  DATA POINTS (SCATTER) ──────────────────────────────────────────────
 if show_points:
-    pts = long_df.dropna(subset=["Value"])
-    hover_parts = (
-        "<b>ID:</b> " + pts["Unique ID"].astype(str) + "<br>" +
-        ("<b>Assembly WO:</b> " + pts["Assembly WO"].astype(str) + "<br>"
-         if "Assembly WO" in pts.columns else "") +
-        "<b>Stage:</b> " + pts["Stage"].astype(str) + "<br>" +
-        "<b>Value:</b> " + pts["Value"].round(4).astype(str)
-    )
-    fig.add_trace(go.Scatter(
-        x             = pts["Stage"].tolist(),
-        y             = pts["Value"].tolist(),
-        mode          = "markers",
-        marker        = dict(
-            color   = line_color,
-            size    = 5,
-            opacity = point_opacity,
-            line    = dict(width=0.5, color=theme["accent"]),
-        ),
-        name          = "Data Points",
-        legendgroup   = "points",
-        showlegend    = True,
-        hovertemplate = "%{text}<extra></extra>",
-        text          = hover_parts.tolist(),
-    ))
+    if group_col and unique_groups:
+        for wo_label in unique_groups:
+            pts = long_df[long_df[group_col] == wo_label].dropna(subset=["Value"])
+            if pts.empty: continue
+            
+            pt_color = wo_colormap.get(wo_label, line_color)
+            hover_parts = (
+                "<b>ID:</b> " + pts["Unique ID"].astype(str) + "<br>" +
+                ("<b>Assembly WO:</b> " + pts["Assembly WO"].astype(str) + "<br>"
+                 if "Assembly WO" in pts.columns else "") +
+                "<b>Stage:</b> " + pts["Stage"].astype(str) + "<br>" +
+                "<b>Value:</b> " + pts["Value"].round(4).astype(str)
+            )
+            fig.add_trace(go.Scatter(
+                x             = pts["Stage"].tolist(),
+                y             = pts["Value"].tolist(),
+                mode          = "markers",
+                marker        = dict(
+                    color   = pt_color,
+                    size    = 5,
+                    opacity = point_opacity,
+                    line    = dict(width=0.5, color=theme["accent"]),
+                ),
+                name          = f"Points — {wo_label}",
+                legendgroup   = f"wo_{wo_label}",
+                showlegend    = False,
+                offsetgroup   = str(wo_label),
+                hovertemplate = "%{text}<extra></extra>",
+                text          = hover_parts.tolist(),
+            ))
+    else:
+        pts = long_df.dropna(subset=["Value"])
+        hover_parts = (
+            "<b>ID:</b> " + pts["Unique ID"].astype(str) + "<br>" +
+            ("<b>Assembly WO:</b> " + pts["Assembly WO"].astype(str) + "<br>"
+             if "Assembly WO" in pts.columns else "") +
+            "<b>Stage:</b> " + pts["Stage"].astype(str) + "<br>" +
+            "<b>Value:</b> " + pts["Value"].round(4).astype(str)
+        )
+        fig.add_trace(go.Scatter(
+            x             = pts["Stage"].tolist(),
+            y             = pts["Value"].tolist(),
+            mode          = "markers",
+            marker        = dict(
+                color   = line_color,
+                size    = 5,
+                opacity = point_opacity,
+                line    = dict(width=0.5, color=theme["accent"]),
+            ),
+            name          = "Data Points",
+            legendgroup   = "points",
+            showlegend    = True,
+            hovertemplate = "%{text}<extra></extra>",
+            text          = hover_parts.tolist(),
+        ))
 
 # ── 3.  BOX PLOTS  (rendered LAST → visually IN FRONT of lines) ──────────
 if show_boxes:
@@ -505,7 +537,10 @@ if show_boxes:
                 opacity       = 1.0,
                 boxmean       = True,       # ◆ mean diamond
                 legendgroup   = f"wo_{wo_label}",
+                offsetgroup   = str(wo_label),
                 showlegend    = True,
+                xaxis         = "x2",
+                yaxis         = "y2",
                 hovertemplate = (
                     f"<b>{wo_label}</b> · %{{x}}<br>"
                     "Median: %{median:.4f}<br>"
@@ -531,6 +566,8 @@ if show_boxes:
                 boxmean       = True,       # ◆ diamond = mean
                 legendgroup   = "boxes",
                 showlegend    = True,
+                xaxis         = "x2",
+                yaxis         = "y2",
                 hovertemplate = (
                     f"<b>{stage}</b><br>"
                     "Median: %{median:.4f}<br>"
@@ -582,6 +619,22 @@ fig.update_layout(
         gridcolor= grid_color,
         zeroline = False,
         layer    = "below traces",
+    ),
+    xaxis2 = dict(
+        categoryorder = "array",
+        categoryarray = STAGE_ORDER,
+        overlaying    = "x",
+        matches       = "x",
+        showticklabels= False,
+        showgrid      = False,
+        zeroline      = False,
+    ),
+    yaxis2 = dict(
+        overlaying    = "y",
+        matches       = "y",
+        showticklabels= False,
+        showgrid      = False,
+        zeroline      = False,
     ),
     legend    = legend_cfg,
     hovermode = "closest",
